@@ -1,0 +1,173 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: Compas@123
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./sql/mysql:/docker-entrypoint-initdb.d
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  patient-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args:
+        MODULE_PATH: services/patient-service
+    environment: &service-env
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: Compas@123
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      MESSAGING_ENABLED: "true"
+      RABBITMQ_LISTENERS_ENABLED: "true"
+    depends_on: [mysql, rabbitmq]
+    ports: ["8081:8081"]
+
+  appointment-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: services/appointment-service }
+    environment:
+      <<: *service-env
+      DB_NAME: appointment_db
+    depends_on: [mysql, rabbitmq, patient-service]
+    ports: ["8082:8082"]
+
+  health-record-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: services/health-record-service }
+    environment:
+      <<: *service-env
+      DB_NAME: health_record_db
+      MESSAGING_ENABLED: "false"
+      RABBITMQ_LISTENERS_ENABLED: "false"
+    depends_on: [mysql]
+    ports: ["8083:8083"]
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: services/billing-service }
+    environment:
+      <<: *service-env
+      DB_NAME: billing_db
+    depends_on: [mysql, rabbitmq, appointment-service]
+    ports: ["8084:8084"]
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: services/auth-service }
+    environment:
+      <<: *service-env
+      DB_NAME: auth_db
+      MESSAGING_ENABLED: "false"
+      RABBITMQ_LISTENERS_ENABLED: "false"
+    depends_on: [mysql]
+    ports: ["8085:8085"]
+
+  pharmacy-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: services/pharmacy-service }
+    environment:
+      <<: *service-env
+      DB_NAME: pharmacy_db
+      MESSAGING_ENABLED: "false"
+      RABBITMQ_LISTENERS_ENABLED: "false"
+    depends_on: [mysql]
+    ports: ["8086:8086"]
+
+  insurance-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: services/insurance-service }
+    environment:
+      <<: *service-env
+      DB_NAME: insurance_db
+      MESSAGING_ENABLED: "false"
+      RABBITMQ_LISTENERS_ENABLED: "false"
+    depends_on: [mysql]
+    ports: ["8087:8087"]
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: services/notification-service }
+    environment:
+      <<: *service-env
+      DB_NAME: notification_db
+    depends_on: [mysql, rabbitmq, appointment-service, billing-service]
+    ports: ["8088:8088"]
+
+  web-bff:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: bff/web-bff }
+    environment:
+      APP_CLIENTS_PATIENT_SERVICE_BASE_URL: http://patient-service:8081
+      APP_CLIENTS_APPOINTMENT_SERVICE_BASE_URL: http://appointment-service:8082
+      APP_CLIENTS_HEALTH_RECORD_SERVICE_BASE_URL: http://health-record-service:8083
+      APP_CLIENTS_AUTH_SERVICE_BASE_URL: http://auth-service:8085
+    depends_on: [patient-service, appointment-service, health-record-service]
+    ports: ["8091:8091"]
+
+  mobile-bff:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: bff/mobile-bff }
+    environment:
+      APP_CLIENTS_PATIENT_SERVICE_BASE_URL: http://patient-service:8081
+      APP_CLIENTS_APPOINTMENT_SERVICE_BASE_URL: http://appointment-service:8082
+      APP_CLIENTS_PHARMACY_SERVICE_BASE_URL: http://pharmacy-service:8086
+      APP_CLIENTS_NOTIFICATION_SERVICE_BASE_URL: http://notification-service:8088
+      APP_CLIENTS_AUTH_SERVICE_BASE_URL: http://auth-service:8085
+    depends_on: [patient-service, appointment-service, pharmacy-service, notification-service]
+    ports: ["8092:8092"]
+
+  admin-bff:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: bff/admin-bff }
+    environment:
+      APP_CLIENTS_BILLING_SERVICE_BASE_URL: http://billing-service:8084
+      APP_CLIENTS_INSURANCE_SERVICE_BASE_URL: http://insurance-service:8087
+      APP_CLIENTS_AUTH_SERVICE_BASE_URL: http://auth-service:8085
+      APP_CLIENTS_NOTIFICATION_SERVICE_BASE_URL: http://notification-service:8088
+    depends_on: [billing-service, insurance-service, auth-service, notification-service]
+    ports: ["8093:8093"]
+
+  partner-bff:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: bff/partner-bff }
+    environment:
+      APP_CLIENTS_INSURANCE_SERVICE_BASE_URL: http://insurance-service:8087
+      APP_CLIENTS_APPOINTMENT_SERVICE_BASE_URL: http://appointment-service:8082
+      APP_CLIENTS_BILLING_SERVICE_BASE_URL: http://billing-service:8084
+      APP_CLIENTS_AUTH_SERVICE_BASE_URL: http://auth-service:8085
+    depends_on: [insurance-service, appointment-service, billing-service]
+    ports: ["8094:8094"]
