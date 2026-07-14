@@ -1,0 +1,6 @@
+# Compiled Java bytecode
+*.class
+
+# Maven/Java build outputs
+target/
+**/target/
