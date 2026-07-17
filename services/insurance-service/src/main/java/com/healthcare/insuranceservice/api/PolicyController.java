@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,7 @@ public class PolicyController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','PARTNER')")
     public ResponseEntity<PolicyResponse> create(@Valid @RequestBody PolicyRequest request) {
         Policy policy = new Policy();
         policy.setPatientId(request.patientId());
@@ -45,11 +47,13 @@ public class PolicyController {
     }
 
     @GetMapping("/{policyId}")
+    @PreAuthorize("hasAnyRole('PARTNER','ADMIN','DOCTOR','PATIENT')")
     public PolicyResponse get(@PathVariable String policyId) {
         return PolicyResponse.from(policyService.get(policyId));
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('PARTNER','ADMIN','DOCTOR','PATIENT')")
     public List<PolicyResponse> search(@RequestParam(required = false) String patientId) {
         return policyService.search(patientId).stream().map(PolicyResponse::from).toList();
     }

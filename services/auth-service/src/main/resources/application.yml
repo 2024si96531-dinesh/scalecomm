@@ -17,8 +17,18 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
 
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+app:
+  security:
+    jwt:
+      issuer: auth-service
+      secret: ${APP_SECURITY_JWT_SECRET:change-this-jwt-secret-at-least-32-chars-long}
+      expires-minutes: 60
+    role-mapping:
+      admin-usernames: ${APP_SECURITY_ADMIN_USERNAMES:admin,admin1}
+      partner-usernames: ${APP_SECURITY_PARTNER_USERNAMES:partner,partner1}

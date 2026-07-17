@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,17 +33,20 @@ public class InvoiceController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<InvoiceResponse> create(@Valid @RequestBody InvoiceRequest request) {
         InvoiceResponse response = invoiceCommandService.create(request);
         return ResponseEntity.created(URI.create("/api/v1/invoices/" + response.invoiceId())).body(response);
     }
 
     @GetMapping("/{invoiceId}")
+    @PreAuthorize("hasAnyRole('PARTNER','ADMIN')")
     public InvoiceResponse getById(@PathVariable String invoiceId) {
         return invoiceQueryService.getById(invoiceId);
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('PARTNER','ADMIN')")
     public List<InvoiceResponse> search(@RequestParam(required = false) String patientId) {
         return invoiceQueryService.search(patientId);
     }

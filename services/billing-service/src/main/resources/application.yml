@@ -25,12 +25,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
 
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
 app:
+  security:
+    jwt:
+      secret: ${APP_SECURITY_JWT_SECRET:change-this-jwt-secret-at-least-32-chars-long}
   messaging:
     enabled: ${MESSAGING_ENABLED:true}

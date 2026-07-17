@@ -4,9 +4,26 @@
 
 - Every business capability is implemented as an independent Spring Boot service.
 - Every service owns a dedicated MySQL schema and does not share tables with any other service.
+- External client traffic enters through a dedicated Spring Cloud API Gateway.
 - REST is used for synchronous queries and commands where immediate responses are required.
 - Asynchronous messaging is used for decoupled event propagation between services.
 - Four BFFs are introduced to tailor service aggregation to web, mobile, admin, and partner client needs.
+
+## API Gateway Capabilities
+
+Detailed guide: `docs/api-gateway.md`
+
+- Gateway module: `gateway/api-gateway` (Spring Cloud Gateway).
+- JWT authentication: `auth-service` issues HS256 JWTs through `POST /api/v1/auth/login`; gateway validates tokens.
+- Authorization:
+    - route-level authorization at gateway
+    - method-level authorization in BFF endpoints for defense in depth
+- BFF token relay: BFF clients forward inbound `Authorization` and `X-Correlation-Id` headers to downstream services.
+- Downstream authorization: `billing-service` and `insurance-service` enforce JWT resource-server validation plus role-based access rules.
+- Rate limiting: Redis-backed request limits keyed by authenticated token subject.
+- Logging: gateway emits access-style request logs and propagates `X-Correlation-Id`.
+- Metrics: gateway and secured BFFs expose actuator metrics/prometheus endpoints.
+- Caching strategy: short-lived cache headers on selected GET read endpoints (`dashboard`, `mobile-overview`).
 
 ## Collaboration Summary
 
@@ -35,6 +52,26 @@ Every service and BFF includes Springdoc and exposes:
 - `/v3/api-docs`
 - `/swagger-ui.html`
 
+Gateway also exposes an aggregated Swagger UI at:
+
+- `/swagger-ui.html`
+
+Gateway Swagger includes direct entries for:
+
+- `api-gateway`
+- `auth-service`
+- `web-bff`
+- `mobile-bff`
+- `admin-bff`
+- `partner-bff`
+- `patient-service`
+- `appointment-service`
+- `health-record-service`
+- `billing-service`
+- `pharmacy-service`
+- `insurance-service`
+- `notification-service`
+
 ## Mermaid Diagram
 
 ```mermaid
@@ -46,6 +83,10 @@ flowchart LR
         Partner[Partner Portal]
     end
 
+    subgraph Edge
+        Gateway[API Gateway\nJWT + Rate Limit + Metrics]
+    end
+
     subgraph BFFs
         WebBFF[Web BFF\nREST]
         MobileBFF[Mobile BFF\nREST]
@@ -53,10 +94,15 @@ flowchart LR
         PartnerBFF[Partner BFF\nREST]
     end
 
-    Web --> WebBFF
-    Mobile --> MobileBFF
-    Admin --> AdminBFF
-    Partner --> PartnerBFF
+    Web --> Gateway
+    Mobile --> Gateway
+    Admin --> Gateway
+    Partner --> Gateway
+
+    Gateway --> WebBFF
+    Gateway --> MobileBFF
+    Gateway --> AdminBFF
+    Gateway --> PartnerBFF
 
     subgraph IndependentRepositories
         PatientSvc[PatientService Repo\nREST + Events]

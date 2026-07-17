@@ -32,13 +32,40 @@ class UserAccountControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "username": "admin1",
+                                  "username": "admin2",
                                   "passwordHash": "hash-1",
                                   "status": "ACTIVE"
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.userId").isNotEmpty())
-                .andExpect(jsonPath("$.username").value("admin1"));
+                .andExpect(jsonPath("$.username").value("admin2"));
+    }
+
+    @Test
+    void loginReturnsJwt() throws Exception {
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "admin1",
+                                  "passwordHash": "secret123",
+                                  "status": "ACTIVE"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "admin1",
+                                  "password": "secret123"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.roles[0]").value("ADMIN"));
     }
 }
