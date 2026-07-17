@@ -14,6 +14,11 @@ services:
       - "5672:5672"
       - "15672:15672"
 
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+
   patient-service:
     build:
       context: .
@@ -25,6 +30,7 @@ services:
       DB_PORT: 3306
       DB_USERNAME: root
       DB_PASSWORD: Compas@123
+      APP_SECURITY_JWT_SECRET: change-this-jwt-secret-at-least-32-chars-long
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: guest
@@ -129,6 +135,7 @@ services:
       APP_CLIENTS_APPOINTMENT_SERVICE_BASE_URL: http://appointment-service:8082
       APP_CLIENTS_HEALTH_RECORD_SERVICE_BASE_URL: http://health-record-service:8083
       APP_CLIENTS_AUTH_SERVICE_BASE_URL: http://auth-service:8085
+      APP_SECURITY_JWT_SECRET: change-this-jwt-secret-at-least-32-chars-long
     depends_on: [patient-service, appointment-service, health-record-service]
     ports: ["8091:8091"]
 
@@ -143,6 +150,7 @@ services:
       APP_CLIENTS_PHARMACY_SERVICE_BASE_URL: http://pharmacy-service:8086
       APP_CLIENTS_NOTIFICATION_SERVICE_BASE_URL: http://notification-service:8088
       APP_CLIENTS_AUTH_SERVICE_BASE_URL: http://auth-service:8085
+      APP_SECURITY_JWT_SECRET: change-this-jwt-secret-at-least-32-chars-long
     depends_on: [patient-service, appointment-service, pharmacy-service, notification-service]
     ports: ["8092:8092"]
 
@@ -156,6 +164,7 @@ services:
       APP_CLIENTS_INSURANCE_SERVICE_BASE_URL: http://insurance-service:8087
       APP_CLIENTS_AUTH_SERVICE_BASE_URL: http://auth-service:8085
       APP_CLIENTS_NOTIFICATION_SERVICE_BASE_URL: http://notification-service:8088
+      APP_SECURITY_JWT_SECRET: change-this-jwt-secret-at-least-32-chars-long
     depends_on: [billing-service, insurance-service, auth-service, notification-service]
     ports: ["8093:8093"]
 
@@ -169,5 +178,23 @@ services:
       APP_CLIENTS_APPOINTMENT_SERVICE_BASE_URL: http://appointment-service:8082
       APP_CLIENTS_BILLING_SERVICE_BASE_URL: http://billing-service:8084
       APP_CLIENTS_AUTH_SERVICE_BASE_URL: http://auth-service:8085
+      APP_SECURITY_JWT_SECRET: change-this-jwt-secret-at-least-32-chars-long
     depends_on: [insurance-service, appointment-service, billing-service]
     ports: ["8094:8094"]
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.spring
+      args: { MODULE_PATH: gateway/api-gateway }
+    environment:
+      APP_SECURITY_JWT_SECRET: change-this-jwt-secret-at-least-32-chars-long
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_ROUTES_AUTH_SERVICE_URI: http://auth-service:8085
+      APP_ROUTES_WEB_BFF_URI: http://web-bff:8091
+      APP_ROUTES_MOBILE_BFF_URI: http://mobile-bff:8092
+      APP_ROUTES_ADMIN_BFF_URI: http://admin-bff:8093
+      APP_ROUTES_PARTNER_BFF_URI: http://partner-bff:8094
+    depends_on: [auth-service, web-bff, mobile-bff, admin-bff, partner-bff, redis]
+    ports: ["8080:8080"]

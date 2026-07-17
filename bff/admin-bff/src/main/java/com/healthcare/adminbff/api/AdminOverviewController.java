@@ -4,11 +4,16 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -32,6 +37,7 @@ public class AdminOverviewController {
     private String authServiceBaseUrl;
 
     @GetMapping("/operations-summary")
+    @PreAuthorize("hasRole('ADMIN')")
     public Map<String, Object> operationsSummary(@RequestParam String patientId, @RequestParam(required = false) String username) {
         return Map.of(
                 "invoices", fetch(billingServiceBaseUrl + "/api/v1/invoices?patientId=" + patientId),
@@ -43,10 +49,33 @@ public class AdminOverviewController {
 
     private Object fetch(String url) {
         try {
-            ResponseEntity<Object> response = restClient.get().uri(url).retrieve().toEntity(Object.class);
+            String authorization = currentHeader("Authorization");
+            String correlationId = currentHeader("X-Correlation-Id");
+
+            ResponseEntity<Object> response = restClient.get()
+                    .uri(url)
+                    .headers(httpHeaders -> {
+                        if (authorization != null && !authorization.isBlank()) {
+                            httpHeaders.set("Authorization", authorization);
+                        }
+                        if (correlationId != null && !correlationId.isBlank()) {
+                            httpHeaders.set("X-Correlation-Id", correlationId);
+                        }
+                    })
+                    .retrieve()
+                    .toEntity(Object.class);
             return response.getBody();
         } catch (Exception exception) {
             return Map.of("url", url, "error", exception.getClass().getSimpleName());
         }
+    }
+
+    private String currentHeader(String name) {
+        ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (requestAttributes == null) {
+            return null;
+        }
+        HttpServletRequest request = requestAttributes.getRequest();
+        return request.getHeader(name);
     }
 }

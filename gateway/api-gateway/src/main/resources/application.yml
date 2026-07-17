@@ -1,0 +1,184 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: auth-login
+          uri: ${app.routes.auth-service-uri:http://auth-service:8085}
+          predicates:
+            - Path=/api/v1/auth/login
+        - id: auth-users
+          uri: ${app.routes.auth-service-uri:http://auth-service:8085}
+          predicates:
+            - Path=/api/v1/users/**
+        - id: auth-docs
+          uri: ${app.routes.auth-service-uri:http://auth-service:8085}
+          predicates:
+            - Path=/v3/api-docs/auth-service
+          filters:
+            - SetPath=/v3/api-docs
+        - id: web-bff-docs
+          uri: ${app.routes.web-bff-uri:http://web-bff:8091}
+          predicates:
+            - Path=/v3/api-docs/web-bff
+          filters:
+            - SetPath=/v3/api-docs
+        - id: mobile-bff-docs
+          uri: ${app.routes.mobile-bff-uri:http://mobile-bff:8092}
+          predicates:
+            - Path=/v3/api-docs/mobile-bff
+          filters:
+            - SetPath=/v3/api-docs
+        - id: admin-bff-docs
+          uri: ${app.routes.admin-bff-uri:http://admin-bff:8093}
+          predicates:
+            - Path=/v3/api-docs/admin-bff
+          filters:
+            - SetPath=/v3/api-docs
+        - id: partner-bff-docs
+          uri: ${app.routes.partner-bff-uri:http://partner-bff:8094}
+          predicates:
+            - Path=/v3/api-docs/partner-bff
+          filters:
+            - SetPath=/v3/api-docs
+        - id: patient-service-docs
+          uri: ${app.routes.patient-service-uri:http://patient-service:8081}
+          predicates:
+            - Path=/v3/api-docs/patient-service
+          filters:
+            - SetPath=/v3/api-docs
+        - id: appointment-service-docs
+          uri: ${app.routes.appointment-service-uri:http://appointment-service:8082}
+          predicates:
+            - Path=/v3/api-docs/appointment-service
+          filters:
+            - SetPath=/v3/api-docs
+        - id: health-record-service-docs
+          uri: ${app.routes.health-record-service-uri:http://health-record-service:8083}
+          predicates:
+            - Path=/v3/api-docs/health-record-service
+          filters:
+            - SetPath=/v3/api-docs
+        - id: billing-service-docs
+          uri: ${app.routes.billing-service-uri:http://billing-service:8084}
+          predicates:
+            - Path=/v3/api-docs/billing-service
+          filters:
+            - SetPath=/v3/api-docs
+        - id: pharmacy-service-docs
+          uri: ${app.routes.pharmacy-service-uri:http://pharmacy-service:8086}
+          predicates:
+            - Path=/v3/api-docs/pharmacy-service
+          filters:
+            - SetPath=/v3/api-docs
+        - id: insurance-service-docs
+          uri: ${app.routes.insurance-service-uri:http://insurance-service:8087}
+          predicates:
+            - Path=/v3/api-docs/insurance-service
+          filters:
+            - SetPath=/v3/api-docs
+        - id: notification-service-docs
+          uri: ${app.routes.notification-service-uri:http://notification-service:8088}
+          predicates:
+            - Path=/v3/api-docs/notification-service
+          filters:
+            - SetPath=/v3/api-docs
+        - id: web-dashboard
+          uri: ${app.routes.web-bff-uri:http://web-bff:8091}
+          predicates:
+            - Path=/api/v1/dashboard
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userTokenKeyResolver}"
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+            - AddResponseHeader=Cache-Control,private\, max-age=30
+        - id: mobile-overview
+          uri: ${app.routes.mobile-bff-uri:http://mobile-bff:8092}
+          predicates:
+            - Path=/api/v1/mobile-overview
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userTokenKeyResolver}"
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+            - AddResponseHeader=Cache-Control,private\, max-age=30
+        - id: admin-overview
+          uri: ${app.routes.admin-bff-uri:http://admin-bff:8093}
+          predicates:
+            - Path=/api/v1/operations-summary
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userTokenKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+        - id: partner-overview
+          uri: ${app.routes.partner-bff-uri:http://partner-bff:8094}
+          predicates:
+            - Path=/api/v1/partner-overview
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userTokenKeyResolver}"
+                redis-rate-limiter.replenishRate: 15
+                redis-rate-limiter.burstCapacity: 30
+
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+
+app:
+  docs:
+    title: Healthcare API Gateway
+  security:
+    jwt:
+      secret: ${APP_SECURITY_JWT_SECRET:change-this-jwt-secret-at-least-32-chars-long}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: api-gateway
+        url: /v3/api-docs
+      - name: auth-service
+        url: /v3/api-docs/auth-service
+      - name: web-bff
+        url: /v3/api-docs/web-bff
+      - name: mobile-bff
+        url: /v3/api-docs/mobile-bff
+      - name: admin-bff
+        url: /v3/api-docs/admin-bff
+      - name: partner-bff
+        url: /v3/api-docs/partner-bff
+      - name: patient-service
+        url: /v3/api-docs/patient-service
+      - name: appointment-service
+        url: /v3/api-docs/appointment-service
+      - name: health-record-service
+        url: /v3/api-docs/health-record-service
+      - name: billing-service
+        url: /v3/api-docs/billing-service
+      - name: pharmacy-service
+        url: /v3/api-docs/pharmacy-service
+      - name: insurance-service
+        url: /v3/api-docs/insurance-service
+      - name: notification-service
+        url: /v3/api-docs/notification-service

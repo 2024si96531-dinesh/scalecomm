@@ -20,10 +20,10 @@ public class ServiceInfoController {
                         "Maintain authorization role assignments"
                 ),
                 "keyApiOperations", List.of(
+                        "POST /api/v1/auth/login",
                         "POST /api/v1/users",
                         "GET /api/v1/users/{userId}",
-                        "POST /api/v1/users/{userId}/roles",
-                        "GET /api/v1/roles"
+                        "GET /api/v1/users"
                 ),
                 "collaborations", List.of(
                         Map.of("with", "WebBff", "type", "query", "purpose", "Support authenticated client access"),
