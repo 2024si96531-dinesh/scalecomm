@@ -33,10 +33,14 @@ public class WebDashboardController {
     @Value("${app.clients.health-record-service-base-url}")
     private String healthRecordServiceBaseUrl;
 
+    @Value("${app.instance-id:${HOSTNAME:unknown}}")
+    private String instanceId;
+
     @GetMapping("/dashboard")
     @PreAuthorize("hasAnyRole('PATIENT','DOCTOR','ADMIN')")
     public Map<String, Object> dashboard(@RequestParam String patientId) {
         return Map.of(
+            "servedBy", instanceId,
                 "patient", fetch(patientServiceBaseUrl + "/api/v1/patients/" + patientId),
                 "appointments", fetch(appointmentServiceBaseUrl + "/api/v1/appointments?patientId=" + patientId),
                 "records", fetch(healthRecordServiceBaseUrl + "/api/v1/records?patientId=" + patientId)

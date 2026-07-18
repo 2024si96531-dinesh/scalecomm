@@ -1,0 +1,4 @@
+services:
+  # Remove host port binding so multiple replicas can run without port collisions.
+  web-bff:
+    ports: []

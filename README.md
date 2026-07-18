@@ -129,3 +129,9 @@ The first asynchronous workflow is implemented as an event-driven chain:
 2. `BillingService` consumes `appointment.booked` and creates an invoice
 3. `BillingService` publishes `invoice.issued`
 4. `NotificationService` consumes domain events and creates outbound notification records
+
+## Demo Assets
+
+- baseline demo flow: `docs/demo-runbook.md`
+- demo video 3 flow (scaling + fault isolation/recovery): `docs/demo-video-3-runbook.md`
+- optional Minikube extension starter: `docs/minikube-deployment-starter.md`
